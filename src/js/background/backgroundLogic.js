@@ -156,8 +156,14 @@ const backgroundLogic = {
     return false;
   },
 
+  /**
+   * Checks if the given identifier represents the default container.
+   * @param {string|number} userContextIdOrCookieStoreId - Either "0"/0 or "firefox-default"
+   * @returns {boolean} True if this represents the default container
+   */
   isDefaultContainer(userContextIdOrCookieStoreId) {
     return userContextIdOrCookieStoreId === DEFAULT_CONTAINER_USER_CONTEXT_ID ||
+           userContextIdOrCookieStoreId === 0 ||
            userContextIdOrCookieStoreId === DEFAULT_CONTAINER_COOKIE_STORE_ID;
   },
 
@@ -165,7 +171,7 @@ const backgroundLogic = {
     await this._closeTabs(userContextId);
 
     // Default container cannot be deleted
-    if (userContextId !== DEFAULT_CONTAINER_USER_CONTEXT_ID && !removed) {
+    if (!this.isDefaultContainer(userContextId) && !removed) {
       await browser.contextualIdentities.remove(this.cookieStoreId(userContextId));
     }
 

@@ -138,25 +138,25 @@ window.assignManager = {
       for(const configKey of Object.keys(macConfigs)) {
         if (configKey.includes("siteContainerMap@@_")) {
           // Handle default container (userContextId "0")
-          const cookieStoreId = macConfigs[configKey].userContextId === "0"
-            ? "firefox-default"
-            : "firefox-container-" + macConfigs[configKey].userContextId;
+          const userContextId = macConfigs[configKey].userContextId;
+          const cookieStoreId = backgroundLogic.isDefaultContainer(userContextId)
+            ? backgroundLogic.cookieStoreId(userContextId)
+            : "firefox-container-" + userContextId;
           const match = identitiesList.find(
             localIdentity => localIdentity.cookieStoreId === cookieStoreId
           );
           // Skip validation for default container since it's not in contextualIdentities
-          if (!match && macConfigs[configKey].userContextId !== "0") {
+          if (!match && !backgroundLogic.isDefaultContainer(userContextId)) {
             await this.remove(configKey);
             continue;
           }
           const updatedSiteAssignment = macConfigs[configKey];
           // Set UUID for all containers, including default
+          const lookupId = backgroundLogic.isDefaultContainer(userContextId)
+            ? backgroundLogic.cookieStoreId(userContextId)
+            : match.cookieStoreId;
           updatedSiteAssignment.identityMacAddonUUID =
-            await identityState.lookupMACaddonUUID(
-              macConfigs[configKey].userContextId === "0" 
-                ? "firefox-default" 
-                : match.cookieStoreId
-            );
+            await identityState.lookupMACaddonUUID(lookupId);
           await this.set(
             configKey,
             updatedSiteAssignment,
@@ -237,9 +237,9 @@ window.assignManager = {
       this.storageArea.get(options.url)
     ]);
     let container;
-    // userContextId "0" represents the default container (no container)
-    // which is a valid assignment target but doesn't exist in contextualIdentities
-    if (siteSettings && siteSettings.userContextId !== "0") {
+    // The default container (userContextId "0") represents Firefox's containerless state.
+    // It's a valid assignment target but doesn't exist in contextualIdentities API.
+    if (siteSettings && !backgroundLogic.isDefaultContainer(siteSettings.userContextId)) {
       try {
         container = await browser.contextualIdentities
           .get(backgroundLogic.cookieStoreId(siteSettings.userContextId));
@@ -284,9 +284,11 @@ window.assignManager = {
       }
     }
 
-    // If site is assigned to default container (userContextId "0") and we're not already
-    // in the default container, reload in default
-    if (siteSettings && siteSettings.userContextId === "0" && userContextId !== "0") {
+    // Handle assignment to default container: If the site is assigned to the default
+    // container but we're currently in a regular container, reload the tab in default.
+    if (siteSettings && 
+        backgroundLogic.isDefaultContainer(siteSettings.userContextId) && 
+        !backgroundLogic.isDefaultContainer(userContextId)) {
       const replaceTabEnabled = await this.storageArea.getReplaceTabEnabled();
       const removeTab = backgroundLogic.NEW_TAB_PAGES.has(tab.url)
         || (messageHandler.lastCreatedTab
@@ -427,8 +429,8 @@ window.assignManager = {
       return false;
     }
 
-    //tab is alredy reopening in the default container
-    if (tab.cookieStoreId === "firefox-default") {
+    //tab is already reopening in the default container
+    if (backgroundLogic.isDefaultContainer(tab.cookieStoreId)) {
       return false;
     }
     // Requested page is not assigned to a specific container. If the current tab's container
@@ -768,32 +770,21 @@ window.assignManager = {
   },
 
   /**
-   * @param {string} url
-   * @param {number} index
-   * @param {boolean} active
-   * @param {number} [openerTabId]
-   * @param {number} [groupId]
+   * Wraps around `browser.tabs.create` to open a URL in the default container.
+   *
+   * Note: We must explicitly specify cookieStoreId when openerTabId is provided,
+   * otherwise the new tab inherits the opener's container. We use the constant
+   * from backgroundLogic to ensure consistency across the codebase.
+   *
+   * @param {string} url - The URL to open
+   * @param {number} index - Tab index position
+   * @param {boolean} active - Whether the tab should be active
+   * @param {number} [openerTabId] - ID of the opener tab (for tab hierarchy)
+   * @param {number} [groupId] - Tab group ID
    * @returns {void}
    */
   reloadPageInDefaultContainer(url, index, active, openerTabId, groupId) {
-    // To create a new tab in the default container, it is easiest just to omit the
-    // cookieStoreId entirely.
-    //
-    // Unfortunately, if you create a new tab WITHOUT a cookieStoreId but WITH an openerTabId,
-    // then the new tab automatically inherits the opener tab's cookieStoreId.
-    // I.e. it opens in the wrong container!
-    //
-    // So we have to explicitly pass in a cookieStoreId when creating the tab, since we
-    // are specifying the openerTabId. There doesn't seem to be any way
-    // to look up the default container's cookieStoreId programatically, so sadly
-    // we have to hardcode it here as "firefox-default". This is potentially
-    // not cross-browser compatible.
-    //
-    // Note that we could have just omitted BOTH cookieStoreId and openerTabId. But the
-    // drawback then is that if the user later closes the newly-created tab, the browser
-    // does not automatically return to the original opener tab. To get this desired behaviour,
-    // we MUST specify the openerTabId when creating the new tab.
-    const cookieStoreId = "firefox-default";
+    const cookieStoreId = backgroundLogic.cookieStoreId("0");
     this.createTabWrapper(url, cookieStoreId, index, active, openerTabId, groupId);
   },
 

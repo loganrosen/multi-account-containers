@@ -128,7 +128,7 @@ const Utils = {
 
   /**
    * Extracts the userContextId from a cookieStoreId.
-   * @param {string} cookieStoreId - The cookie store ID
+   * @param {string} cookieStoreId - The cookie store ID (e.g., "firefox-default", "firefox-container-1")
    * @returns {string|number|false} "0" for default container, number for regular containers, false if invalid
    */
   userContextId(cookieStoreId = "") {
@@ -201,6 +201,11 @@ const Utils = {
     );
   },
 
+  /**
+   * Creates a pseudo-identity object for the default container.
+   * This mimics the structure of contextualIdentities but represents the containerless state.
+   * @returns {Object} An identity-like object for the default container
+   */
   createDefaultContainerIdentity() {
     return {
       cookieStoreId: "firefox-default",

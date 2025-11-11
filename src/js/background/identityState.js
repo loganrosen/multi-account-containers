@@ -91,7 +91,7 @@ window.identityState = {
             localIdentity => localIdentity.cookieStoreId === cookieStoreId
           );
           // Don't remove default container entry even though it's not in identitiesList
-          if (cookieStoreId === "firefox-default") {
+          if (backgroundLogic.isDefaultContainer(cookieStoreId)) {
             if (!macConfigs[configKey].macAddonUUID) {
               await identityState.storageArea.get(cookieStoreId);
             }
@@ -159,9 +159,9 @@ window.identityState = {
   async lookupMACaddonUUID(cookieStoreId) {
     // This stays a lookup, because if the cookieStoreId doesn't 
     // exist, this.get() will create it, which is not what we want.
-    // Handle default container specially
-    const cookieStoreIdKey = cookieStoreId === "0"
-      ? "firefox-default"
+    // Normalize the cookieStoreId format
+    const cookieStoreIdKey = backgroundLogic.isDefaultContainer(cookieStoreId)
+      ? backgroundLogic.cookieStoreId("0")
       : (cookieStoreId.includes("firefox-container-") ?
         cookieStoreId : "firefox-container-" + cookieStoreId);
     const macConfigs = await this.storageArea.area.get();
@@ -192,10 +192,15 @@ window.identityState = {
     };
   },
 
+  /**
+   * Generates or returns the appropriate UUID for a container.
+   * Default container gets a constant UUID (all zeros) for cross-device sync consistency.
+   * All other containers get randomly generated UUIDs.
+   * @param {string} cookieStoreId - The container's cookie store ID
+   * @returns {string} UUID for the container
+   */
   _getUUIDForContainer(cookieStoreId) {
-    // Default container gets a constant UUID for sync compatibility
-    // All other containers get random UUIDs
-    return cookieStoreId === "firefox-default" 
+    return backgroundLogic.isDefaultContainer(cookieStoreId)
       ? "00000000-0000-0000-0000-000000000000"
       : uuidv4();
   },

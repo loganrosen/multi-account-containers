@@ -347,6 +347,11 @@ const Logic = {
     return Utils.userContextId(identity.cookieStoreId);
   },
 
+  /**
+   * Converts a userContextId to a cookieStoreId.
+   * @param {string|number} userContextId - The user context ID
+   * @returns {string} The cookie store ID
+   */
   cookieStoreId(userContextId) {
     if (userContextId === "0" || userContextId === 0) {
       return "firefox-default";
@@ -1513,7 +1518,7 @@ Logic.registerPanel(P_CONTAINER_ASSIGNMENTS, {
     Utils.addEnterHandler(closeContEl, () => {
       const identity = Logic.currentIdentity();
       // Default container doesn't have an edit panel, go back to containers list
-      if (identity.userContextId === "0") {
+      if (identity && identity.userContextId === "0") {
         Logic.showPanel(P_CONTAINERS_LIST);
       } else {
         Logic.showPanel(P_CONTAINER_EDIT, identity, false, false);
