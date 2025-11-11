@@ -137,18 +137,26 @@ window.assignManager = {
       const macConfigs = await this.area.get();
       for(const configKey of Object.keys(macConfigs)) {
         if (configKey.includes("siteContainerMap@@_")) {
-          const cookieStoreId =
-            "firefox-container-" + macConfigs[configKey].userContextId;
+          // Handle default container (userContextId "0")
+          const cookieStoreId = macConfigs[configKey].userContextId === "0"
+            ? "firefox-default"
+            : "firefox-container-" + macConfigs[configKey].userContextId;
           const match = identitiesList.find(
             localIdentity => localIdentity.cookieStoreId === cookieStoreId
           );
-          if (!match) {
+          // Skip validation for default container since it's not in contextualIdentities
+          if (!match && macConfigs[configKey].userContextId !== "0") {
             await this.remove(configKey);
             continue;
           }
           const updatedSiteAssignment = macConfigs[configKey];
+          // Set UUID for all containers, including default
           updatedSiteAssignment.identityMacAddonUUID =
-            await identityState.lookupMACaddonUUID(match.cookieStoreId);
+            await identityState.lookupMACaddonUUID(
+              macConfigs[configKey].userContextId === "0" 
+                ? "firefox-default" 
+                : match.cookieStoreId
+            );
           await this.set(
             configKey,
             updatedSiteAssignment,
@@ -229,18 +237,22 @@ window.assignManager = {
       this.storageArea.get(options.url)
     ]);
     let container;
-    try {
-      container = await browser.contextualIdentities
-        .get(backgroundLogic.cookieStoreId(siteSettings.userContextId));
-    } catch {
-      container = false;
-    }
+    // userContextId "0" represents the default container (no container)
+    // which is a valid assignment target but doesn't exist in contextualIdentities
+    if (siteSettings && siteSettings.userContextId !== "0") {
+      try {
+        container = await browser.contextualIdentities
+          .get(backgroundLogic.cookieStoreId(siteSettings.userContextId));
+      } catch {
+        container = false;
+      }
 
-    // The container we have in the assignment map isn't present any
-    // more so lets remove it then continue the existing load
-    if (siteSettings && !container) {
-      this.deleteContainer(siteSettings.userContextId);
-      return {};
+      // The container we have in the assignment map isn't present any
+      // more so lets remove it then continue the existing load
+      if (!container) {
+        this.deleteContainer(siteSettings.userContextId);
+        return {};
+      }
     }
     const userContextId = this.getUserContextIdFromCookieStore(tab);
 
@@ -270,6 +282,35 @@ window.assignManager = {
           || this.storageArea.isExempted(options.url, tab.id)) {
         return {};
       }
+    }
+
+    // If site is assigned to default container (userContextId "0") and we're not already
+    // in the default container, reload in default
+    if (siteSettings && siteSettings.userContextId === "0" && userContextId !== "0") {
+      const replaceTabEnabled = await this.storageArea.getReplaceTabEnabled();
+      const removeTab = backgroundLogic.NEW_TAB_PAGES.has(tab.url)
+        || (messageHandler.lastCreatedTab
+          && messageHandler.lastCreatedTab.id === tab.id)
+        || replaceTabEnabled;
+      const openTabId = removeTab ? tab.openerTabId : tab.id;
+
+      this.reloadPageInDefaultContainer(
+        options.url,
+        tab.index + 1,
+        tab.active,
+        openTabId,
+        tab.groupId
+      );
+
+      this.calculateContextMenu(tab);
+
+      if (removeTab) {
+        browser.tabs.remove(tab.id);
+      }
+
+      return {
+        cancel: true,
+      };
     }
     const replaceTabEnabled = await this.storageArea.getReplaceTabEnabled();
     const removeTab = backgroundLogic.NEW_TAB_PAGES.has(tab.url)

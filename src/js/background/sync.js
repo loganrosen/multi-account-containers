@@ -565,8 +565,10 @@ async function setAssignmentWithUUID(assignedSite, urlKey) {
   const uuid = assignedSite.identityMacAddonUUID;
   const cookieStoreId = await identityState.lookupCookieStoreId(uuid);
   if (cookieStoreId) {
-    assignedSite.userContextId = cookieStoreId
-      .replace(/^firefox-container-/, "");
+    // Handle default container specially
+    assignedSite.userContextId = cookieStoreId === "firefox-default"
+      ? "0"
+      : cookieStoreId.replace(/^firefox-container-/, "");
     await assignManager.storageArea.set(
       urlKey,
       assignedSite,

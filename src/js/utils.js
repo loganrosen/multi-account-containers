@@ -126,7 +126,16 @@ const Utils = {
     });
   },
 
+  /**
+   * Extracts the userContextId from a cookieStoreId.
+   * @param {string} cookieStoreId - The cookie store ID
+   * @returns {string|number|false} "0" for default container, number for regular containers, false if invalid
+   */
   userContextId(cookieStoreId = "") {
+    // Handle default container
+    if (cookieStoreId === "firefox-default") {
+      return "0";
+    }
     const userContextId = cookieStoreId.replace("firefox-container-", "");
     return (userContextId !== cookieStoreId) ? Number(userContextId) : false;
   },
@@ -190,6 +199,16 @@ const Utils = {
       assignedUserContextId,
       false
     );
+  },
+
+  createDefaultContainerIdentity() {
+    return {
+      cookieStoreId: "firefox-default",
+      name: browser.i18n.getMessage("defaultContainerLabel"),
+      userContextId: "0",
+      icon: "fingerprint",
+      color: "grey"
+    };
   },
   /* Theme helper
    *

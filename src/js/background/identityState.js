@@ -13,7 +13,7 @@ window.identityState = {
       const storageResponse = await this.area.get([storeKey]);
       if (storageResponse && storeKey in storageResponse) {
         if (!storageResponse[storeKey].macAddonUUID){
-          storageResponse[storeKey].macAddonUUID = uuidv4();
+          storageResponse[storeKey].macAddonUUID = identityState._getUUIDForContainer(cookieStoreId);
           await this.set(cookieStoreId, storageResponse[storeKey]);
         }
         return storageResponse[storeKey];
@@ -25,6 +25,7 @@ window.identityState = {
         (identity) => identity.cookieStoreId === cookieStoreId);
       if (match) {
         const defaultContainerState = identityState._createIdentityState();
+        defaultContainerState.macAddonUUID = identityState._getUUIDForContainer(cookieStoreId);
         await this.set(cookieStoreId, defaultContainerState);
         return defaultContainerState;
       }
@@ -79,6 +80,9 @@ window.identityState = {
         await identityState.addUUID(identity.cookieStoreId);
       }
       
+      // Ensure default container has a UUID (constant across all installations for sync)
+      await identityState.addUUID("firefox-default");
+      
       const macConfigs = await this.area.get();
       for(const configKey of Object.keys(macConfigs)) {
         if (configKey.includes("identitiesState@@_")) {
@@ -86,7 +90,13 @@ window.identityState = {
           const match = identitiesList.find(
             localIdentity => localIdentity.cookieStoreId === cookieStoreId
           );
-          if (cookieStoreId === "firefox-default") continue;
+          // Don't remove default container entry even though it's not in identitiesList
+          if (cookieStoreId === "firefox-default") {
+            if (!macConfigs[configKey].macAddonUUID) {
+              await identityState.storageArea.get(cookieStoreId);
+            }
+            continue;
+          }
           if (!match) {
             await this.remove(cookieStoreId);
             continue;
@@ -149,8 +159,11 @@ window.identityState = {
   async lookupMACaddonUUID(cookieStoreId) {
     // This stays a lookup, because if the cookieStoreId doesn't 
     // exist, this.get() will create it, which is not what we want.
-    const cookieStoreIdKey = cookieStoreId.includes("firefox-container-") ? 
-      cookieStoreId : "firefox-container-" + cookieStoreId;
+    // Handle default container specially
+    const cookieStoreIdKey = cookieStoreId === "0"
+      ? "firefox-default"
+      : (cookieStoreId.includes("firefox-container-") ?
+        cookieStoreId : "firefox-container-" + cookieStoreId);
     const macConfigs = await this.storageArea.area.get();
     for(const configKey of Object.keys(macConfigs)) {
       if (configKey === this.storageArea.getContainerStoreKey(cookieStoreIdKey)) {
@@ -177,6 +190,14 @@ window.identityState = {
       hiddenTabs: [],
       macAddonUUID: uuidv4()
     };
+  },
+
+  _getUUIDForContainer(cookieStoreId) {
+    // Default container gets a constant UUID for sync compatibility
+    // All other containers get random UUIDs
+    return cookieStoreId === "firefox-default" 
+      ? "00000000-0000-0000-0000-000000000000"
+      : uuidv4();
   },
 
   init() {

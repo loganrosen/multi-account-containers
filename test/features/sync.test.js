@@ -463,3 +463,36 @@ const DUPE_TEST_IDENTS = [
     "color": "yellow",
   }
 ];
+
+describe("Default Container Sync Tests", function() {
+  beforeEach(async function() {
+    this.webExt = await initializeWithTab();
+    this.syncHelper = new SyncTestHelper(this.webExt);
+  });
+
+  afterEach(function() {
+    this.webExt.destroy();
+    delete this.syncHelper;
+  });
+
+  it("should not delete default container assignments during upgrade", async function() {
+    await this.syncHelper.stopSyncListeners();
+
+    // Create a default container assignment
+    await this.webExt.browser.storage.local.set({
+      "siteContainerMap@@_example.com": {
+        "userContextId": "0",
+        "neverAsk": false,
+        "hostname": "example.com"
+      }
+    });
+
+    // Run upgrade
+    await this.webExt.background.window.assignManager.storageArea.upgradeData();
+
+    // Verify assignment still exists
+    const macConfigs = await this.webExt.browser.storage.local.get();
+    macConfigs.should.have.property("siteContainerMap@@_example.com");
+    macConfigs["siteContainerMap@@_example.com"].userContextId.should.equal("0");
+  });
+});

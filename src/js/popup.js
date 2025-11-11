@@ -348,6 +348,9 @@ const Logic = {
   },
 
   cookieStoreId(userContextId) {
+    if (userContextId === "0" || userContextId === 0) {
+      return "firefox-default";
+    }
     return `firefox-container-${userContextId}`;
   },
 
@@ -809,6 +812,49 @@ Logic.registerPanel(P_CONTAINERS_LIST, {
   async prepare() {
     const fragment = document.createDocumentFragment();
     const identities = Logic.identities();
+
+    // Add Default Container entry first
+    const defaultAssignments = await Logic.getAssignmentObjectByContainer("0");
+    const defaultAssignmentCount = Object.keys(defaultAssignments).length;
+    
+    const defaultTr = document.createElement("tr");
+    defaultTr.classList.add("menu-item", "hover-highlight", "keyboard-nav", "keyboard-right-arrow-override");
+    defaultTr.setAttribute("tabindex", "0");
+    defaultTr.setAttribute("data-cookie-store-id", "firefox-default");
+    const defaultTd = document.createElement("td");
+
+    defaultTd.innerHTML = Utils.escaped`
+      <div class="menu-item-name">
+        <div class="menu-icon">
+          <div class="usercontext-icon"
+            data-identity-icon="fingerprint"
+            data-identity-color="grey">
+          </div>
+        </div>
+        <span class="menu-text">${browser.i18n.getMessage("defaultContainerLabel")}</span>
+      </div>
+      <span class="menu-right-float">
+        <img alt="" class="always-open-in-flag flag-img" src="/img/flags/.png"/>
+        <span class="container-count">${defaultAssignmentCount > 0 ? defaultAssignmentCount : ""}</span>
+        <span class="menu-arrow">
+          <img alt="Container Info" src="/img/arrow-icon-right.svg" />
+        </span>
+      </span>`;
+
+    fragment.appendChild(defaultTr);
+    defaultTr.appendChild(defaultTd);
+
+    // Default container can't open tabs, so just show the assignments panel
+    Utils.addEnterOnlyHandler(defaultTr, () => {
+      const defaultIdentity = Utils.createDefaultContainerIdentity();
+      Logic.showPanel(P_CONTAINER_ASSIGNMENTS, defaultIdentity);
+    });
+
+    const defaultShowPanelButton = defaultTr.querySelector(".menu-right-float");
+    Utils.addEnterHandler(defaultShowPanelButton, () => {
+      const defaultIdentity = Utils.createDefaultContainerIdentity();
+      Logic.showPanel(P_CONTAINER_ASSIGNMENTS, defaultIdentity);
+    });
 
     for (const identity of identities) {
       const tr = document.createElement("tr");
@@ -1379,6 +1425,31 @@ Logic.registerPanel(ALWAYS_OPEN_IN_PICKER, {
 
     document.getElementById("new-container-div").innerHTML = "";
 
+    // Add Default Container option first
+    const defaultTr = document.createElement("tr");
+    defaultTr.classList.add("menu-item", "hover-highlight", "keyboard-nav");
+    defaultTr.setAttribute("tabindex", "0");
+    const defaultTd = document.createElement("td");
+
+    defaultTd.innerHTML = Utils.escaped`
+      <div class="menu-icon hover-highlight">
+        <div class="usercontext-icon"
+          data-identity-icon="fingerprint"
+          data-identity-color="grey">
+        </div>
+      </div>
+      <span class="menu-text">${browser.i18n.getMessage("defaultContainerLabel")}</span>
+      `;
+
+    fragment.appendChild(defaultTr);
+    defaultTr.appendChild(defaultTd);
+
+    Utils.addEnterHandler(defaultTr, () => {
+      const defaultIdentity = Utils.createDefaultContainerIdentity();
+      Utils.alwaysOpenInContainer(defaultIdentity);
+      window.close();
+    });
+
     for (const identity of identities) {
       const tr = document.createElement("tr");
       tr.classList.add("menu-item", "hover-highlight", "keyboard-nav");
@@ -1441,7 +1512,12 @@ Logic.registerPanel(P_CONTAINER_ASSIGNMENTS, {
     const closeContEl = document.querySelector("#close-container-assignment-panel");
     Utils.addEnterHandler(closeContEl, () => {
       const identity = Logic.currentIdentity();
-      Logic.showPanel(P_CONTAINER_EDIT, identity, false, false);
+      // Default container doesn't have an edit panel, go back to containers list
+      if (identity.userContextId === "0") {
+        Logic.showPanel(P_CONTAINERS_LIST);
+      } else {
+        Logic.showPanel(P_CONTAINER_EDIT, identity, false, false);
+      }
     });
 
     const assignmentPanel = document.getElementById("edit-sites-assigned");

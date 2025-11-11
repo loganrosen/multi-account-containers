@@ -4,6 +4,10 @@
 
 const DEFAULT_TAB = "about:newtab";
 
+// Default container constants
+const DEFAULT_CONTAINER_USER_CONTEXT_ID = "0";
+const DEFAULT_CONTAINER_COOKIE_STORE_ID = "firefox-default";
+
 const backgroundLogic = {
   NEW_TAB_PAGES: new Set([
     "about:startpage",
@@ -132,9 +136,18 @@ const backgroundLogic = {
     return {done: true, userContextId};
   },
 
+  /**
+   * Converts a cookieStoreId to a userContextId.
+   * @param {string} cookieStoreId - The cookie store ID (e.g., "firefox-container-1" or "firefox-default")
+   * @returns {string|false} The userContextId as a string (e.g., "0", "1", "2") or false if invalid
+   */
   getUserContextIdFromCookieStoreId(cookieStoreId) {
     if (!cookieStoreId) {
       return false;
+    }
+    // Handle default container
+    if (cookieStoreId === DEFAULT_CONTAINER_COOKIE_STORE_ID) {
+      return DEFAULT_CONTAINER_USER_CONTEXT_ID;
     }
     const container = cookieStoreId.replace("firefox-container-", "");
     if (container !== cookieStoreId) {
@@ -143,10 +156,16 @@ const backgroundLogic = {
     return false;
   },
 
+  isDefaultContainer(userContextIdOrCookieStoreId) {
+    return userContextIdOrCookieStoreId === DEFAULT_CONTAINER_USER_CONTEXT_ID ||
+           userContextIdOrCookieStoreId === DEFAULT_CONTAINER_COOKIE_STORE_ID;
+  },
+
   async deleteContainer(userContextId, removed = false) {
     await this._closeTabs(userContextId);
 
-    if (!removed) {
+    // Default container cannot be deleted
+    if (userContextId !== DEFAULT_CONTAINER_USER_CONTEXT_ID && !removed) {
       await browser.contextualIdentities.remove(this.cookieStoreId(userContextId));
     }
 
@@ -495,11 +514,18 @@ const backgroundLogic = {
     return identityState.storageArea.set(options.cookieStoreId, containerState);
   },
 
+  /**
+   * Converts a userContextId to a cookieStoreId.
+   * @param {string|number} userContextId - The user context ID ("0" for default, "1", "2", etc.)
+   * @returns {string} The cookieStoreId (e.g., "firefox-default" or "firefox-container-1")
+   */
   cookieStoreId(userContextId) {
-    if(userContextId === 0) return "firefox-default";
+    if(userContextId === 0 || userContextId === DEFAULT_CONTAINER_USER_CONTEXT_ID) {
+      return DEFAULT_CONTAINER_COOKIE_STORE_ID;
+    }
     return `firefox-container-${userContextId}`;
   }
 };
 
-
+window.backgroundLogic = backgroundLogic;
 backgroundLogic.init();
