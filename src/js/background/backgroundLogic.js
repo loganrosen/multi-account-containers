@@ -4,10 +4,6 @@
 
 const DEFAULT_TAB = "about:newtab";
 
-// Default container constants
-const DEFAULT_CONTAINER_USER_CONTEXT_ID = "0";
-const DEFAULT_CONTAINER_COOKIE_STORE_ID = "firefox-default";
-
 const backgroundLogic = {
   NEW_TAB_PAGES: new Set([
     "about:startpage",
@@ -146,8 +142,8 @@ const backgroundLogic = {
       return false;
     }
     // Handle default container
-    if (cookieStoreId === DEFAULT_CONTAINER_COOKIE_STORE_ID) {
-      return DEFAULT_CONTAINER_USER_CONTEXT_ID;
+    if (cookieStoreId === "firefox-default") {
+      return "0";
     }
     const container = cookieStoreId.replace("firefox-container-", "");
     if (container !== cookieStoreId) {
@@ -156,22 +152,11 @@ const backgroundLogic = {
     return false;
   },
 
-  /**
-   * Checks if the given identifier represents the default container.
-   * @param {string|number} userContextIdOrCookieStoreId - Either "0"/0 or "firefox-default"
-   * @returns {boolean} True if this represents the default container
-   */
-  isDefaultContainer(userContextIdOrCookieStoreId) {
-    return userContextIdOrCookieStoreId === DEFAULT_CONTAINER_USER_CONTEXT_ID ||
-           userContextIdOrCookieStoreId === 0 ||
-           userContextIdOrCookieStoreId === DEFAULT_CONTAINER_COOKIE_STORE_ID;
-  },
-
   async deleteContainer(userContextId, removed = false) {
     await this._closeTabs(userContextId);
 
     // Default container cannot be deleted
-    if (!this.isDefaultContainer(userContextId) && !removed) {
+    if (!Utils.isDefaultContainer(userContextId) && !removed) {
       await browser.contextualIdentities.remove(this.cookieStoreId(userContextId));
     }
 
@@ -526,8 +511,8 @@ const backgroundLogic = {
    * @returns {string} The cookieStoreId (e.g., "firefox-default" or "firefox-container-1")
    */
   cookieStoreId(userContextId) {
-    if(userContextId === 0 || userContextId === DEFAULT_CONTAINER_USER_CONTEXT_ID) {
-      return DEFAULT_CONTAINER_COOKIE_STORE_ID;
+    if(userContextId === 0 || userContextId === "0") {
+      return "firefox-default";
     }
     return `firefox-container-${userContextId}`;
   }

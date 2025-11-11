@@ -5,6 +5,10 @@ const DEFAULT_FAVICON = "/img/blank-favicon.svg";
 // eslint-disable-next-line
 const CONTAINER_ORDER_STORAGE_KEY = "container-order";
 
+// Default container constants
+const DEFAULT_CONTAINER_USER_CONTEXT_ID = "0";
+const DEFAULT_CONTAINER_COOKIE_STORE_ID = "firefox-default";
+
 // TODO use export here instead of globals
 const Utils = {
 
@@ -124,6 +128,17 @@ const Utils = {
         handler(e);
       }
     });
+  },
+
+  /**
+   * Checks if the given identifier represents the default container.
+   * @param {string|number} userContextIdOrCookieStoreId - Either "0"/0 or "firefox-default"
+   * @returns {boolean} True if this represents the default container
+   */
+  isDefaultContainer(userContextIdOrCookieStoreId) {
+    return userContextIdOrCookieStoreId === DEFAULT_CONTAINER_USER_CONTEXT_ID ||
+           userContextIdOrCookieStoreId === 0 ||
+           userContextIdOrCookieStoreId === DEFAULT_CONTAINER_COOKIE_STORE_ID;
   },
 
   /**

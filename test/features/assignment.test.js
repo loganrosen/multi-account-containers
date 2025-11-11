@@ -274,11 +274,11 @@ describe("Default Container Helper Functions", function () {
     });
 
     it("isDefaultContainer should identify default container", function () {
-      const logic = this.webExt.background.window.backgroundLogic;
-      expect(logic.isDefaultContainer("0")).to.be.true;
-      expect(logic.isDefaultContainer("firefox-default")).to.be.true;
-      expect(logic.isDefaultContainer("1")).to.be.false;
-      expect(logic.isDefaultContainer("firefox-container-1")).to.be.false;
+      const Utils = this.webExt.background.window.Utils;
+      expect(Utils.isDefaultContainer("0")).to.be.true;
+      expect(Utils.isDefaultContainer("firefox-default")).to.be.true;
+      expect(Utils.isDefaultContainer("1")).to.be.false;
+      expect(Utils.isDefaultContainer("firefox-container-1")).to.be.false;
     });
   });
 

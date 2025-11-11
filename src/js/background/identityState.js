@@ -91,7 +91,7 @@ window.identityState = {
             localIdentity => localIdentity.cookieStoreId === cookieStoreId
           );
           // Don't remove default container entry even though it's not in identitiesList
-          if (backgroundLogic.isDefaultContainer(cookieStoreId)) {
+          if (Utils.isDefaultContainer(cookieStoreId)) {
             if (!macConfigs[configKey].macAddonUUID) {
               await identityState.storageArea.get(cookieStoreId);
             }
@@ -160,7 +160,7 @@ window.identityState = {
     // This stays a lookup, because if the cookieStoreId doesn't 
     // exist, this.get() will create it, which is not what we want.
     // Normalize the cookieStoreId format
-    const cookieStoreIdKey = backgroundLogic.isDefaultContainer(cookieStoreId)
+    const cookieStoreIdKey = Utils.isDefaultContainer(cookieStoreId)
       ? backgroundLogic.cookieStoreId("0")
       : (cookieStoreId.includes("firefox-container-") ?
         cookieStoreId : "firefox-container-" + cookieStoreId);
@@ -200,7 +200,7 @@ window.identityState = {
    * @returns {string} UUID for the container
    */
   _getUUIDForContainer(cookieStoreId) {
-    return backgroundLogic.isDefaultContainer(cookieStoreId)
+    return Utils.isDefaultContainer(cookieStoreId)
       ? "00000000-0000-0000-0000-000000000000"
       : uuidv4();
   },

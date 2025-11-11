@@ -566,7 +566,7 @@ async function setAssignmentWithUUID(assignedSite, urlKey) {
   const cookieStoreId = await identityState.lookupCookieStoreId(uuid);
   if (cookieStoreId) {
     // Convert cookieStoreId to userContextId
-    assignedSite.userContextId = backgroundLogic.isDefaultContainer(cookieStoreId)
+    assignedSite.userContextId = Utils.isDefaultContainer(cookieStoreId)
       ? "0"
       : cookieStoreId.replace(/^firefox-container-/, "");
     await assignManager.storageArea.set(
