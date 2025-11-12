@@ -159,11 +159,10 @@ window.identityState = {
   async lookupMACaddonUUID(cookieStoreId) {
     // This stays a lookup, because if the cookieStoreId doesn't 
     // exist, this.get() will create it, which is not what we want.
-    // Normalize the cookieStoreId format
-    const cookieStoreIdKey = Utils.isDefaultContainer(cookieStoreId)
-      ? Utils.cookieStoreId("0")
-      : (cookieStoreId.startsWith("firefox-container-") ?
-        cookieStoreId : "firefox-container-" + cookieStoreId);
+    // Normalize the cookieStoreId format - handle both cookieStoreId and userContextId inputs
+    const cookieStoreIdKey = cookieStoreId.startsWith("firefox-")
+      ? cookieStoreId
+      : Utils.cookieStoreId(cookieStoreId);
     const macConfigs = await this.storageArea.area.get();
     for(const configKey of Object.keys(macConfigs)) {
       if (configKey === this.storageArea.getContainerStoreKey(cookieStoreIdKey)) {

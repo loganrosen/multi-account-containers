@@ -267,10 +267,10 @@ describe("Default Container Helper Functions", function () {
     });
 
     it("cookieStoreId should convert '0' and 0 to firefox-default", function () {
-      const logic = this.webExt.background.window.backgroundLogic;
-      expect(logic.cookieStoreId("0")).to.equal("firefox-default");
-      expect(logic.cookieStoreId(0)).to.equal("firefox-default");
-      expect(logic.cookieStoreId("1")).to.equal("firefox-container-1");
+      const Utils = this.webExt.background.window.Utils;
+      expect(Utils.cookieStoreId("0")).to.equal("firefox-default");
+      expect(Utils.cookieStoreId(0)).to.equal("firefox-default");
+      expect(Utils.cookieStoreId("1")).to.equal("firefox-container-1");
     });
 
     it("isDefaultContainer should identify default container", function () {

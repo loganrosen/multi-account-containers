@@ -122,11 +122,11 @@ const backgroundLogic = {
   // Remove container data (cookies, localStorage and cache)
   async deleteContainerDataOnly(userContextId) {
     await browser.browsingData.removeCookies({
-      cookieStoreId: this.cookieStoreId(userContextId)
+      cookieStoreId: Utils.cookieStoreId(userContextId)
     });
 
     await browser.browsingData.removeLocalStorage({
-      cookieStoreId: this.cookieStoreId(userContextId)
+      cookieStoreId: Utils.cookieStoreId(userContextId)
     });
 
     return {done: true, userContextId};
@@ -141,15 +141,9 @@ const backgroundLogic = {
     if (!cookieStoreId) {
       return false;
     }
-    // Handle default container
-    if (Utils.isDefaultContainer(cookieStoreId)) {
-      return "0";
-    }
-    const container = cookieStoreId.replace("firefox-container-", "");
-    if (container !== cookieStoreId) {
-      return container;
-    }
-    return false;
+    const result = Utils.userContextId(cookieStoreId);
+    // Convert number to string for regular containers to maintain existing API
+    return result === false ? false : String(result);
   },
 
   async deleteContainer(userContextId, removed = false) {
@@ -157,13 +151,13 @@ const backgroundLogic = {
 
     // Default container cannot be deleted
     if (!Utils.isDefaultContainer(userContextId) && !removed) {
-      await browser.contextualIdentities.remove(this.cookieStoreId(userContextId));
+      await browser.contextualIdentities.remove(Utils.cookieStoreId(userContextId));
     }
 
     assignManager.deleteContainer(userContextId);
 
     // Now remove the identity->proxy association in proxifiedContainers also
-    proxifiedContainers.delete(this.cookieStoreId(userContextId));
+    proxifiedContainers.delete(Utils.cookieStoreId(userContextId));
 
     return {done: true, userContextId};
   },
@@ -171,7 +165,7 @@ const backgroundLogic = {
   async createOrUpdateContainer(options) {
     if (options.userContextId !== "new") {
       return await browser.contextualIdentities.update(
-        this.cookieStoreId(options.userContextId),
+        Utils.cookieStoreId(options.userContextId),
         options.params
       );
     }
@@ -184,7 +178,7 @@ const backgroundLogic = {
     const active = ("nofocus" in options) ? options.nofocus : true;
     const discarded = ("noload" in options) ? options.noload : false;
 
-    const cookieStoreId = backgroundLogic.cookieStoreId(userContextId);
+    const cookieStoreId = Utils.cookieStoreId(userContextId);
     // Autofocus url bar will happen in 54: https://bugzilla.mozilla.org/show_bug.cgi?id=1295072
 
     // We can't open new tab pages, so open a blank tab. Used in tab un-hide
@@ -343,7 +337,7 @@ const backgroundLogic = {
   },
 
   async _closeTabs(userContextId, windowId = false) {
-    const cookieStoreId = this.cookieStoreId(userContextId);
+    const cookieStoreId = Utils.cookieStoreId(userContextId);
     let tabs;
     /* if we have no windowId we are going to close all this container (used for deleting) */
     if (windowId !== false) {
@@ -502,19 +496,7 @@ const backgroundLogic = {
     containerState.hiddenTabs = [];
 
     await Promise.all(promises);
-    return identityState.storageArea.set(options.cookieStoreId, containerState);
-  },
-
-  /**
-   * Converts a userContextId to a cookieStoreId.
-   * @param {string|number} userContextId - The user context ID ("0" for default, "1", "2", etc.)
-   * @returns {string} The cookieStoreId (e.g., "firefox-default" or "firefox-container-1")
-   */
-  cookieStoreId(userContextId) {
-    if(Utils.isDefaultContainer(userContextId)) {
-      return "firefox-default";
-    }
-    return `firefox-container-${userContextId}`;
+    return identityState.storageArea.get(options.cookieStoreId, containerState);
   }
 };
 

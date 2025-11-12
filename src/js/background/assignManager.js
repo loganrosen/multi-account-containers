@@ -102,7 +102,7 @@ window.assignManager = {
     async deleteContainer(userContextId) {
       const sitesByContainer = await this.getAssignedSites(userContextId);
       this.area.remove(Object.keys(sitesByContainer));
-      identityState.storageArea.remove(backgroundLogic.cookieStoreId(userContextId));
+      identityState.storageArea.remove(Utils.cookieStoreId(userContextId));
     },
 
     async getAssignedSites(userContextId = null) {
@@ -237,7 +237,7 @@ window.assignManager = {
     if (siteSettings && !Utils.isDefaultContainer(siteSettings.userContextId)) {
       try {
         container = await browser.contextualIdentities
-          .get(backgroundLogic.cookieStoreId(siteSettings.userContextId));
+          .get(Utils.cookieStoreId(siteSettings.userContextId));
       } catch {
         container = false;
       }
@@ -279,18 +279,19 @@ window.assignManager = {
       }
     }
 
+    // Prepare tab replacement variables used for both default and regular container assignments
+    const replaceTabEnabled = await this.storageArea.getReplaceTabEnabled();
+    const removeTab = backgroundLogic.NEW_TAB_PAGES.has(tab.url)
+      || (messageHandler.lastCreatedTab
+        && messageHandler.lastCreatedTab.id === tab.id)
+      || replaceTabEnabled;
+    const openTabId = removeTab ? tab.openerTabId : tab.id;
+
     // Handle assignment to default container: If the site is assigned to the default
     // container but we're currently in a regular container, reload the tab in default.
     if (siteSettings && 
         Utils.isDefaultContainer(siteSettings.userContextId) && 
         !Utils.isDefaultContainer(userContextId)) {
-      const replaceTabEnabled = await this.storageArea.getReplaceTabEnabled();
-      const removeTab = backgroundLogic.NEW_TAB_PAGES.has(tab.url)
-        || (messageHandler.lastCreatedTab
-          && messageHandler.lastCreatedTab.id === tab.id)
-        || replaceTabEnabled;
-      const openTabId = removeTab ? tab.openerTabId : tab.id;
-
       this.reloadPageInDefaultContainer(
         options.url,
         tab.index + 1,
@@ -309,12 +310,6 @@ window.assignManager = {
         cancel: true,
       };
     }
-    const replaceTabEnabled = await this.storageArea.getReplaceTabEnabled();
-    const removeTab = backgroundLogic.NEW_TAB_PAGES.has(tab.url)
-      || (messageHandler.lastCreatedTab
-        && messageHandler.lastCreatedTab.id === tab.id)
-      || replaceTabEnabled;
-    const openTabId = removeTab ? tab.openerTabId : tab.id;
 
     if (!this.canceledRequests[tab.id]) {
       // we decided to cancel the request at this point, register
@@ -682,7 +677,7 @@ window.assignManager = {
       return;
     }
     await backgroundLogic.addRemoveSiteIsolation(
-      backgroundLogic.cookieStoreId(userContextId),
+      Utils.cookieStoreId(userContextId),
       true
     );
   },
@@ -834,7 +829,7 @@ window.assignManager = {
    * @returns {Promise<Tab>}
    */
   reloadPageInContainer(url, currentUserContextId, userContextId, index, active, neverAsk = false, openerTabId = null, groupId = undefined) {
-    const cookieStoreId = backgroundLogic.cookieStoreId(userContextId);
+    const cookieStoreId = Utils.cookieStoreId(userContextId);
     const loadPage = browser.runtime.getURL("confirm-page.html");
     // False represents assignment is not permitted
     // If the user has explicitly checked "Never Ask Again" on the warning page we will send them straight there
@@ -844,7 +839,7 @@ window.assignManager = {
       let confirmUrl = `${loadPage}?url=${this.encodeURLProperty(url)}&cookieStoreId=${cookieStoreId}`;
       let currentCookieStoreId;
       if (currentUserContextId) {
-        currentCookieStoreId = backgroundLogic.cookieStoreId(currentUserContextId);
+        currentCookieStoreId = Utils.cookieStoreId(currentUserContextId);
         confirmUrl += `&currentCookieStoreId=${currentCookieStoreId}`;
       }
       return this.createTabWrapper(

@@ -347,10 +347,6 @@ const Logic = {
     return Utils.userContextId(identity.cookieStoreId);
   },
 
-  cookieStoreId(userContextId) {
-    return Utils.cookieStoreId(userContextId);
-  },
-
   currentCookieStoreId() {
     const identity = Logic.currentIdentity();
     return identity.cookieStoreId;

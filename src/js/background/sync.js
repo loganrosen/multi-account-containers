@@ -565,8 +565,9 @@ async function setAssignmentWithUUID(assignedSite, urlKey) {
   const uuid = assignedSite.identityMacAddonUUID;
   const cookieStoreId = await identityState.lookupCookieStoreId(uuid);
   if (cookieStoreId) {
-    // Convert cookieStoreId to userContextId
-    assignedSite.userContextId = String(Utils.userContextId(cookieStoreId));
+    // Convert cookieStoreId to userContextId (returns "0" for default, number for others)
+    const userContextId = Utils.userContextId(cookieStoreId);
+    assignedSite.userContextId = typeof userContextId === "number" ? String(userContextId) : userContextId;
     await assignManager.storageArea.set(
       urlKey,
       assignedSite,
