@@ -496,7 +496,7 @@ const backgroundLogic = {
     containerState.hiddenTabs = [];
 
     await Promise.all(promises);
-    return identityState.storageArea.get(options.cookieStoreId, containerState);
+    return identityState.storageArea.set(options.cookieStoreId, containerState);
   }
 };
 
