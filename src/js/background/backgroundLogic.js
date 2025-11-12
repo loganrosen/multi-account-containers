@@ -142,7 +142,7 @@ const backgroundLogic = {
       return false;
     }
     // Handle default container
-    if (cookieStoreId === "firefox-default") {
+    if (Utils.isDefaultContainer(cookieStoreId)) {
       return "0";
     }
     const container = cookieStoreId.replace("firefox-container-", "");
@@ -511,7 +511,7 @@ const backgroundLogic = {
    * @returns {string} The cookieStoreId (e.g., "firefox-default" or "firefox-container-1")
    */
   cookieStoreId(userContextId) {
-    if(userContextId === 0 || userContextId === "0") {
+    if(Utils.isDefaultContainer(userContextId)) {
       return "firefox-default";
     }
     return `firefox-container-${userContextId}`;

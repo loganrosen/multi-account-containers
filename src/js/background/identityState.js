@@ -161,8 +161,8 @@ window.identityState = {
     // exist, this.get() will create it, which is not what we want.
     // Normalize the cookieStoreId format
     const cookieStoreIdKey = Utils.isDefaultContainer(cookieStoreId)
-      ? backgroundLogic.cookieStoreId("0")
-      : (cookieStoreId.includes("firefox-container-") ?
+      ? Utils.cookieStoreId("0")
+      : (cookieStoreId.startsWith("firefox-container-") ?
         cookieStoreId : "firefox-container-" + cookieStoreId);
     const macConfigs = await this.storageArea.area.get();
     for(const configKey of Object.keys(macConfigs)) {
@@ -200,8 +200,10 @@ window.identityState = {
    * @returns {string} UUID for the container
    */
   _getUUIDForContainer(cookieStoreId) {
+    // Default container UUID constant for cross-device sync consistency
+    const DEFAULT_CONTAINER_UUID = "00000000-0000-0000-0000-000000000000";
     return Utils.isDefaultContainer(cookieStoreId)
-      ? "00000000-0000-0000-0000-000000000000"
+      ? DEFAULT_CONTAINER_UUID
       : uuidv4();
   },
 

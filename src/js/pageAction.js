@@ -5,7 +5,7 @@ async function init() {
   // Add Default Container option first
   const defaultTr = document.createElement("tr");
   defaultTr.classList.add("menu-item", "hover-highlight");
-  defaultTr.setAttribute("data-cookie-store-id", "firefox-default");
+  defaultTr.setAttribute("data-cookie-store-id", Utils.cookieStoreId("0"));
   const defaultTd = document.createElement("td");
   defaultTd.innerHTML = Utils.escaped`
       <div class="menu-icon">

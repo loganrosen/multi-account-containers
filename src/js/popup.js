@@ -347,16 +347,8 @@ const Logic = {
     return Utils.userContextId(identity.cookieStoreId);
   },
 
-  /**
-   * Converts a userContextId to a cookieStoreId.
-   * @param {string|number} userContextId - The user context ID
-   * @returns {string} The cookie store ID
-   */
   cookieStoreId(userContextId) {
-    if (userContextId === "0" || userContextId === 0) {
-      return "firefox-default";
-    }
-    return `firefox-container-${userContextId}`;
+    return Utils.cookieStoreId(userContextId);
   },
 
   currentCookieStoreId() {
@@ -825,7 +817,7 @@ Logic.registerPanel(P_CONTAINERS_LIST, {
     const defaultTr = document.createElement("tr");
     defaultTr.classList.add("menu-item", "hover-highlight", "keyboard-nav", "keyboard-right-arrow-override");
     defaultTr.setAttribute("tabindex", "0");
-    defaultTr.setAttribute("data-cookie-store-id", "firefox-default");
+    defaultTr.setAttribute("data-cookie-store-id", Utils.cookieStoreId("0"));
     const defaultTd = document.createElement("td");
 
     defaultTd.innerHTML = Utils.escaped`
@@ -1346,7 +1338,7 @@ Logic.registerPanel(REOPEN_IN_CONTAINER_PICKER, {
 
     document.getElementById("new-container-div").innerHTML = "";
 
-    if (currentTab.cookieStoreId !== "firefox-default") {
+    if (!Utils.isDefaultContainer(currentTab.cookieStoreId)) {
       const tr = document.createElement("tr");
       tr.classList.add("menu-item", "hover-highlight", "keyboard-nav");
       tr.setAttribute("tabindex", "0");
@@ -1518,7 +1510,7 @@ Logic.registerPanel(P_CONTAINER_ASSIGNMENTS, {
     Utils.addEnterHandler(closeContEl, () => {
       const identity = Logic.currentIdentity();
       // Default container doesn't have an edit panel, go back to containers list
-      if (identity && identity.userContextId === "0") {
+      if (identity && Utils.isDefaultContainer(identity.userContextId)) {
         Logic.showPanel(P_CONTAINERS_LIST);
       } else {
         Logic.showPanel(P_CONTAINER_EDIT, identity, false, false);

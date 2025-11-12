@@ -132,13 +132,29 @@ const Utils = {
 
   /**
    * Checks if the given identifier represents the default container.
-   * @param {string|number} userContextIdOrCookieStoreId - Either "0"/0 or "firefox-default"
+   * Accepts either a userContextId ("0" or 0) or a cookieStoreId ("firefox-default").
+   * This dual-mode function exists because the default container is represented differently
+   * in different contexts throughout the codebase.
+   * 
+   * @param {string|number} id - Either userContextId ("0"/0) or cookieStoreId ("firefox-default")
    * @returns {boolean} True if this represents the default container
    */
-  isDefaultContainer(userContextIdOrCookieStoreId) {
-    return userContextIdOrCookieStoreId === DEFAULT_CONTAINER_USER_CONTEXT_ID ||
-           userContextIdOrCookieStoreId === 0 ||
-           userContextIdOrCookieStoreId === DEFAULT_CONTAINER_COOKIE_STORE_ID;
+  isDefaultContainer(id) {
+    return id === DEFAULT_CONTAINER_USER_CONTEXT_ID ||
+           id === 0 ||
+           id === DEFAULT_CONTAINER_COOKIE_STORE_ID;
+  },
+
+  /**
+   * Converts a userContextId to a cookieStoreId.
+   * @param {string|number} userContextId - The user context ID
+   * @returns {string} The cookie store ID
+   */
+  cookieStoreId(userContextId) {
+    if (this.isDefaultContainer(userContextId)) {
+      return DEFAULT_CONTAINER_COOKIE_STORE_ID;
+    }
+    return `firefox-container-${userContextId}`;
   },
 
   /**
@@ -148,8 +164,8 @@ const Utils = {
    */
   userContextId(cookieStoreId = "") {
     // Handle default container
-    if (cookieStoreId === "firefox-default") {
-      return "0";
+    if (this.isDefaultContainer(cookieStoreId)) {
+      return DEFAULT_CONTAINER_USER_CONTEXT_ID;
     }
     const userContextId = cookieStoreId.replace("firefox-container-", "");
     return (userContextId !== cookieStoreId) ? Number(userContextId) : false;
@@ -167,7 +183,7 @@ const Utils = {
 
   resetCookiesForSite(pageUrl, cookieStoreId) {
     return browser.runtime.sendMessage({ 
-      method: "resetCookiesForSite", 
+      method: "resetCookiesForSite",
       pageUrl,
       cookieStoreId,
     });
@@ -223,9 +239,9 @@ const Utils = {
    */
   createDefaultContainerIdentity() {
     return {
-      cookieStoreId: "firefox-default",
+      cookieStoreId: DEFAULT_CONTAINER_COOKIE_STORE_ID,
       name: browser.i18n.getMessage("defaultContainerLabel"),
-      userContextId: "0",
+      userContextId: DEFAULT_CONTAINER_USER_CONTEXT_ID,
       icon: "fingerprint",
       color: "grey"
     };

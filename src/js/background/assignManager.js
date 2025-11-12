@@ -139,9 +139,7 @@ window.assignManager = {
         if (configKey.includes("siteContainerMap@@_")) {
           // Handle default container (userContextId "0")
           const userContextId = macConfigs[configKey].userContextId;
-          const cookieStoreId = Utils.isDefaultContainer(userContextId)
-            ? backgroundLogic.cookieStoreId(userContextId)
-            : "firefox-container-" + userContextId;
+          const cookieStoreId = Utils.cookieStoreId(userContextId);
           const match = identitiesList.find(
             localIdentity => localIdentity.cookieStoreId === cookieStoreId
           );
@@ -152,11 +150,8 @@ window.assignManager = {
           }
           const updatedSiteAssignment = macConfigs[configKey];
           // Set UUID for all containers, including default
-          const lookupId = Utils.isDefaultContainer(userContextId)
-            ? backgroundLogic.cookieStoreId(userContextId)
-            : match.cookieStoreId;
           updatedSiteAssignment.identityMacAddonUUID =
-            await identityState.lookupMACaddonUUID(lookupId);
+            await identityState.lookupMACaddonUUID(cookieStoreId);
           await this.set(
             configKey,
             updatedSiteAssignment,
@@ -786,16 +781,13 @@ window.assignManager = {
     // I.e. it opens in the wrong container!
     //
     // So we have to explicitly pass in a cookieStoreId when creating the tab, since we
-    // are specifying the openerTabId. There doesn't seem to be any way
-    // to look up the default container's cookieStoreId programatically, so sadly
-    // we have to hardcode it here as "firefox-default". This is potentially
-    // not cross-browser compatible.
+    // are specifying the openerTabId.
     //
     // Note that we could have just omitted BOTH cookieStoreId and openerTabId. But the
     // drawback then is that if the user later closes the newly-created tab, the browser
     // does not automatically return to the original opener tab. To get this desired behaviour,
     // we MUST specify the openerTabId when creating the new tab.
-    const cookieStoreId = "firefox-default";
+    const cookieStoreId = Utils.cookieStoreId("0");
     this.createTabWrapper(url, cookieStoreId, index, active, openerTabId, groupId);
   },
 
